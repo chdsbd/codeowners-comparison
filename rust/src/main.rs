@@ -1,4 +1,5 @@
-// For each case in a fixture, prints "<gh-codeowners> <codeowners-rs>":
+// For each case in a fixture, prints
+// "<gh-codeowners> <codeowners-rs> <codeowners>":
 // 1 if the line owns the file, 0 if not, E if the line is rejected, P if the
 // library panics.
 use gh_codeowners::codeowners::parse_codeowners;
@@ -38,6 +39,14 @@ fn codeowners_rs(line: &str, path: &str) -> &'static str {
     }
 }
 
+fn codeowners(line: &str, path: &str) -> &'static str {
+    if codeowners::from_reader(line.as_bytes()).of(path).is_some() {
+        "1"
+    } else {
+        "0"
+    }
+}
+
 fn main() {
     std::panic::set_hook(Box::new(|_| {}));
     let fixture = std::fs::read_to_string(std::env::args().nth(1).unwrap()).unwrap();
@@ -49,6 +58,7 @@ fn main() {
         let (line, path) = (fields[0], fields[1]);
         let ours = std::panic::catch_unwind(|| gh_codeowners(line, path)).unwrap_or("P");
         let theirs = std::panic::catch_unwind(|| codeowners_rs(line, path)).unwrap_or("P");
-        println!("{ours} {theirs}");
+        let softprops = std::panic::catch_unwind(|| codeowners(line, path)).unwrap_or("P");
+        println!("{ours} {theirs} {softprops}");
     }
 }

@@ -21,6 +21,7 @@ They were recorded from a private test repository, by reading which rule GitHub 
 | [hmarr/codeowners](https://github.com/hmarr/codeowners) | Go | 4021/4157 |
 | [chdsbd/github-codeowners](https://github.com/chdsbd/github-codeowners), a fork of `@snyk/github-codeowners` | Node | 4005/4157 |
 | [codeowners-rs](https://crates.io/crates/codeowners-rs) | Rust | 4004/4157 |
+| [softprops/codeowners](https://crates.io/crates/codeowners) | Rust | 3993/4157 |
 
 ## Running it
 
@@ -32,7 +33,7 @@ It prints how often each library agrees with GitHub, and the cases where it does
 
 Each library has a small driver that prints a verdict for every case: `1` if the line owns the file, `0` if not, `E` if the library rejects the line, and `P` if it panics. A rejected line counts as owning nothing, like on GitHub.
 
-- [`rust/`](rust) runs gh-codeowners and codeowners-rs.
+- [`rust/`](rust) runs gh-codeowners, codeowners-rs and softprops/codeowners.
 - [`go/`](go) runs hmarr/codeowners.
 - [`node/`](node) runs the `@snyk/github-codeowners` fork.
 - sbdchd/codeowners runs inside `compare.py`.

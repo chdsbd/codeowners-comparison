@@ -4,9 +4,9 @@
 # ///
 """Compare CODEOWNERS libraries with GitHub on data/github.txt.
 
-Runs gh-codeowners, codeowners-rs, hmarr/codeowners (Go), sbdchd/codeowners
-(Python) and the extension's @snyk/github-codeowners fork (Node) over every
-recorded case, then prints how often each agrees with GitHub and the cases
+Runs gh-codeowners, codeowners-rs, softprops/codeowners (Rust),
+hmarr/codeowners (Go), sbdchd/codeowners (Python) and the extension's
+@snyk/github-codeowners fork (Node) over every recorded case, then prints how often each agrees with GitHub and the cases
 where it doesn't. Needs cargo, go and npm on PATH; a library whose tool is
 missing is skipped, unless --require-all is passed. Exits with status 1 if
 gh-codeowners disagrees with GitHub. In GitHub Actions, it also writes a
@@ -40,6 +40,7 @@ def rust() -> dict[str, list[str]]:
     return {
         "gh-codeowners": [row[0] for row in rows],
         "codeowners-rs": [row[1] for row in rows],
+        "softprops/codeowners": [row[2] for row in rows],
     }
 
 
