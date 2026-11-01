@@ -1,6 +1,10 @@
 {
   "private": true,
   "dependencies": {
-    "@snyk/github-codeowners": "github:chdsbd/github-codeowners#bb24c2adb022a88e03f25a3680a23934a281a5c3"
+    "@snyk/github-codeowners": "github:chdsbd/github-codeowners#bb24c2adb022a88e03f25a3680a23934a281a5c3",
+    "codeowners": "5.1.1",
+    "codeowners-audit": "2.9.0",
+    "codeowners-deadzone": "0.1.1",
+    "github-codeowners": "0.2.1"
   }
 }
