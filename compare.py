@@ -4,10 +4,17 @@
 # ///
 """Compare CODEOWNERS libraries with GitHub on data/github.txt.
 
-Runs gh-codeowners, codeowners-rs, softprops/codeowners (Rust),
-hmarr/codeowners (Go), sbdchd/codeowners (Python) and the extension's
-@snyk/github-codeowners fork (Node) over every recorded case, then prints how often each agrees with GitHub and the cases
-where it doesn't. Needs cargo, go and npm on PATH; a library whose tool is
+Runs every library over every recorded case, then prints how often each
+agrees with GitHub and the cases where it doesn't:
+
+- Rust: gh-codeowners, codeowners-rs, softprops/codeowners
+- Go: hmarr/codeowners, and the codeowners-validator and codeowners-tool
+  commands
+- Node: the extension's @snyk/github-codeowners fork, jjmschofield/
+  github-codeowners, beaugunderson/codeowners, codeowners-deadzone,
+  codeowners-audit
+- Python: sbdchd/codeowners
+ Needs cargo, go and npm on PATH; a library whose tool is
 missing is skipped, unless --require-all is passed. Exits with status 1 if
 gh-codeowners disagrees with GitHub. In GitHub Actions, it also writes a
 table to the job summary.
@@ -24,6 +31,8 @@ from pathlib import Path
 
 from codeowners import CodeOwners
 
+import clis
+
 HERE = Path(__file__).resolve().parent
 FIXTURE = HERE / "data" / "github.txt"
 
@@ -34,7 +43,7 @@ def run(args: list[str], cwd: Path) -> list[str]:
     ).stdout.split("\n")
 
 
-def rust() -> dict[str, list[str]]:
+def rust(cases: list[tuple[str, str, str]]) -> dict[str, list[str]]:
     lines = run(["cargo", "run", "-q", "--release", "--", str(FIXTURE)], HERE / "rust")
     rows = [line.split() for line in lines if line]
     return {
@@ -44,15 +53,23 @@ def rust() -> dict[str, list[str]]:
     }
 
 
-def go() -> dict[str, list[str]]:
+def go(cases: list[tuple[str, str, str]]) -> dict[str, list[str]]:
     lines = run(["go", "run", ".", str(FIXTURE)], HERE / "go")
-    return {"hmarr/codeowners": [line for line in lines if line]}
+    return {"hmarr/codeowners": [line for line in lines if line]} | clis.collect(cases)
 
 
-def node() -> dict[str, list[str]]:
+def node(cases: list[tuple[str, str, str]]) -> dict[str, list[str]]:
     run(["npm", "ci", "--no-audit", "--no-fund", "--silent"], HERE / "node")
     lines = run(["node", "main.js", str(FIXTURE)], HERE / "node")
-    return {"snyk fork": [line for line in lines if line]}
+    rows = [line.split() for line in lines if line]
+    names = [
+        "snyk fork",
+        "jjmschofield/github-codeowners",
+        "beaugunderson/codeowners",
+        "codeowners-deadzone",
+        "codeowners-audit",
+    ]
+    return {name: [row[i] for row in rows] for i, name in enumerate(names)}
 
 
 def sbdchd(cases: list[tuple[str, str, str]]) -> dict[str, list[str]]:
@@ -81,7 +98,7 @@ def main() -> None:
     results: dict[str, list[str]] = {}
     for tool, collect in [("cargo", rust), ("go", go), ("npm", node)]:
         if shutil.which(tool):
-            results |= collect()
+            results |= collect(cases)
         elif args.require_all:
             sys.exit(f"{tool} isn't on PATH")
         else:
