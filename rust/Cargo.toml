@@ -1,0 +1,9 @@
+[package]
+name = "compare-rust"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+codeowners-rs = "=0.1.1"
+gh-codeowners = { git = "https://github.com/chdsbd/gh-codeowners", rev = "d7382c9d3d166fee697a4228c7c6d81debe1a526" }

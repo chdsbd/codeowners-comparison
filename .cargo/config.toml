@@ -1,0 +1,4 @@
+# Fetch gh-codeowners with the git command, so it uses your git credentials
+# while the repository is private.
+[net]
+git-fetch-with-cli = true
