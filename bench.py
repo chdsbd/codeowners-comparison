@@ -35,6 +35,8 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 NODE = HERE / "node" / "node_modules"
 
+CODEOWNERS_LOCATIONS = [".github/CODEOWNERS", "CODEOWNERS", "docs/CODEOWNERS"]
+
 REPOS = {
     "sentry": (
         "https://github.com/getsentry/sentry",
@@ -68,8 +70,24 @@ def fetch(name: str, work: Path) -> Path:
     """The repository at its pinned commit, with every file empty."""
     url, commit = REPOS[name]
     repo = work / name
-    if (repo / ".git").exists():
-        return repo
+    if not (repo / ".git").exists():
+        checkout(name, url, commit, repo, work)
+    # The tools read CODEOWNERS itself, so it needs its contents.
+    for location in CODEOWNERS_LOCATIONS:
+        tracked = sh(["git", "ls-files", location], repo).strip()
+        if tracked:
+            (repo / location).write_bytes(
+                subprocess.run(
+                    ["git", "show", f"HEAD:{location}"],
+                    cwd=repo,
+                    check=True,
+                    stdout=subprocess.PIPE,
+                ).stdout
+            )
+    return repo
+
+
+def checkout(name: str, url: str, commit: str, repo: Path, work: Path) -> None:
     repo.mkdir(parents=True)
     sh(["git", "init", "-q"], repo)
     sh(["git", "fetch", "-q", "--depth", "1", "--filter=blob:none", url, commit], repo)
@@ -96,7 +114,6 @@ def fetch(name: str, work: Path) -> Path:
         sh(git + ["add", ".github/CODEOWNERS"], repo)
         sh(git + ["commit", "-qm", "Add CODEOWNERS from MAINTAINERS"], repo)
     (work / f"{name}.paths").write_text(sh(["git", "ls-files"], repo))
-    return repo
 
 
 def install(bin_dir: Path) -> dict[str, Path]:
@@ -264,6 +281,11 @@ def main() -> None:
     try:
         bins = install(bin_dir)
         repos = {name: fetch(name, work) for name in REPOS}
+        for name, repo in repos.items():
+            # Shows the rule and file counts, so a missing or empty
+            # CODEOWNERS is obvious.
+            summary = sh([str(args.gh_codeowners.resolve()), "."], repo)
+            print(f"{name}: {summary.splitlines()[0]}\n")
         print(
             f"{os.cpu_count()} CPUs. Medians of up to {args.runs} runs; tools over 10 s ran once.\n"
         )
