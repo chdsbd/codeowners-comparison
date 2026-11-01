@@ -30,7 +30,7 @@ FIXTURE = HERE / "data" / "github.txt"
 
 def run(args: list[str], cwd: Path) -> list[str]:
     return subprocess.run(
-        args, cwd=cwd, check=True, capture_output=True, text=True
+        args, cwd=cwd, check=True, stdout=subprocess.PIPE, text=True
     ).stdout.split("\n")
 
 
