@@ -8,8 +8,9 @@
 # The last rule matching a file sets its owners, so later rules override
 # earlier ones. A line GitHub rejects is skipped, as if it weren't there.
 #
-# "Other libraries" notes compare codeowners-rs (Rust), hmarr/codeowners
-# (Go), snyk/github-codeowners (Node) and sbdchd/codeowners (Python). Run
+# "Other libraries" notes compare codeowners-rs and softprops/codeowners
+# (Rust), hmarr/codeowners (Go), snyk/github-codeowners (Node) and
+# sbdchd/codeowners (Python). Run
 # `uv run compare.py` to see every case where each disagrees with
 # GitHub.
 
@@ -52,7 +53,7 @@ docs/*           @acme/docs
 # `!` doesn't negate. Without a slash, GitHub drops it and matches files
 # named like the rest of the pattern, but not directories: `!secrets` owns
 # `secrets` and `config/secrets`, but not `secrets/key`.
-# Other libraries: all four match nothing, or reject the line.
+# Other libraries: all five match nothing, or reject the line.
 !secrets         @acme/security
 
 # With a slash, `!` is an ordinary character: this owns the file
@@ -65,7 +66,7 @@ docs/*           @acme/docs
 
 # `?` matches one byte, not one character. `é` is two bytes in UTF-8, so
 # `?.txt` owns `a.txt` but not `é.txt`, and `??.txt` owns `é.txt`.
-# Other libraries: all four match one character.
+# Other libraries: all five match one character.
 ?.txt            @acme/one-byte
 ??.txt           @acme/two-bytes
 
@@ -77,10 +78,12 @@ docs/*           @acme/docs
 
 # `**` that isn't between slashes is the same as `*`: `test**data` owns
 # `testdata` and `test-data/x`, but not `test/data`.
+# Other libraries: softprops panics.
 test**data       @acme/fixtures
 
 # `***` makes GitHub skip the line.
-# Other libraries: codeowners-rs, snyk and sbdchd treat `***` like `*`.
+# Other libraries: codeowners-rs, snyk and sbdchd treat `***` like `*`, and
+# softprops panics.
 /tmp/***         @acme/tmp
 
 # Braces aren't special: this owns files and directories named `{a,b}`,
@@ -99,18 +102,20 @@ test**data       @acme/fixtures
 
 # Escape them instead: this owns `app/[id]/page.tsx`. Escaped brackets also
 # match a path with the backslashes in it, like `app/\[id\]/page.tsx`.
-# Other libraries: none match that second path.
+# Other libraries: none match that second path, and softprops doesn't
+# match the first either.
 /app/\[id\]/     @acme/web
 
 # Without a slash, a pattern starting with `\[` matches nothing: this
 # doesn't own `[draft]notes.md`. Start it with `**/` instead.
-# Other libraries: all four match it.
+# Other libraries: all four others match it. softprops matches nothing,
+# even with `**/`.
 \[draft\]*       @acme/drafts
 **/\[draft\]*    @acme/drafts
 
 # Escaped brackets must pair up by count, or the pattern matches nothing:
 # this doesn't own `notes[1`.
-# Other libraries: all four match it.
+# Other libraries: all four others match it, and softprops panics.
 notes\[1         @acme/notes
 
 
@@ -118,26 +123,26 @@ notes\[1         @acme/notes
 
 # `\` only escapes a space, a tab, `#`, `[`, `]` or `\`. Escaping anything
 # else makes GitHub skip the line.
-# Other libraries: all four read `\*` as a literal `*`.
+# Other libraries: all four others read `\*` as a literal `*`.
 \*.bak           @acme/backups
 
 # An escaped space is part of the pattern.
-# Other libraries: snyk rejects the line.
+# Other libraries: snyk rejects the line, and softprops matches nothing.
 My\ Documents/   @acme/docs
 
 # `\\` is a literal backslash: this owns `win\path`.
-# Other libraries: codeowners-rs matches nothing.
+# Other libraries: codeowners-rs and softprops match nothing.
 win\\path        @acme/windows
 
 # An unescaped `#` starts a comment anywhere, even inside a pattern. This
 # line is the pattern `/src/C` with no owners: it leaves `src/C/x` with no
 # owner, and doesn't match `src/C#/x`.
-# Other libraries: sbdchd reads `/src/C#/` as the pattern.
+# Other libraries: sbdchd and softprops read `/src/C#/` as the pattern.
 /src/C#/ @acme/csharp
 
 # Escape `#` to match it: this owns `src/C#/x`, and `#notes` anywhere.
 # GitHub's docs say this escape doesn't work, but it does.
-# Other libraries: hmarr and snyk match nothing.
+# Other libraries: hmarr, snyk and softprops match nothing.
 /src/C\#/        @acme/csharp
 \#notes          @acme/notes
 
@@ -145,7 +150,7 @@ win\\path        @acme/windows
 # ---- Case and non-ASCII ----
 
 # Patterns are case-sensitive: this owns `README.MD`, not `README.md`.
-# Other libraries: snyk ignores case.
+# Other libraries: snyk and softprops ignore case.
 *.MD             @acme/docs
 
 # Non-ASCII patterns work: this owns everything in directories named `日本語`.
