@@ -66,6 +66,8 @@ uv run bench.py --gh-codeowners path/to/gh-codeowners
 
 It needs git, cargo, go and npm on `PATH`, and installs the other tools at pinned versions. `--work DIR` keeps the repositories between runs.
 
+`--gh-codeowners-wasm path/to/gh_codeowners_wasm.wasm` also times gh-codeowners' WebAssembly build, run in Node by [`node/wasm.js`](node/wasm.js). WebAssembly can't read git's index, so the script lists the files with `git ls-files -z` and passes them in, as a host like the VS Code extension would. Build it in gh-codeowners with `cargo build --release --target wasm32-unknown-unknown` in `wasm/`.
+
 ## Running it
 
 ```bash
