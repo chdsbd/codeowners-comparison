@@ -15,7 +15,8 @@ Both are fetched without file contents, then checked out as empty files,
 which is all the tools read. The generated Linux CODEOWNERS is committed,
 since some tools only read committed files.
 
-    uv run bench.py --gh-codeowners PATH [--runs N] [--timeout SECONDS]
+    uv run bench.py --gh-codeowners PATH [--gh-codeowners-wasm PATH]
+        [--runs N] [--timeout SECONDS]
 
 Needs git, cargo, go and npm on PATH. Tools are installed into a temporary
 directory at pinned versions; `node/` must have its dependencies installed
@@ -142,15 +143,27 @@ def install(bin_dir: Path) -> dict[str, Path]:
     }
 
 
-def tools(bins: dict[str, Path], gh_codeowners: Path, paths: Path) -> list[Tool]:
+def tools(
+    bins: dict[str, Path], gh_codeowners: Path, wasm: Path | None, paths: Path
+) -> list[Tool]:
     node = shutil.which("node") or "node"
     return [
         Tool(
             "gh-codeowners",
             "rule counts, unowned files, unused rules",
-            [str(gh_codeowners), "."],
+            [str(gh_codeowners), "list"],
         ),
-        Tool("gh-codeowners, 1 thread", "same", [str(gh_codeowners), "-j", "1", "."]),
+        *(
+            [
+                Tool(
+                    "gh-codeowners, WebAssembly in Node",
+                    "same",
+                    [node, str(HERE / "node" / "wasm.js"), str(wasm)],
+                )
+            ]
+            if wasm
+            else []
+        ),
         Tool(
             "codeowners-rs, file list",
             "owner of each file",
@@ -266,6 +279,11 @@ def main() -> None:
         "--gh-codeowners", type=Path, required=True, help="gh-codeowners binary"
     )
     parser.add_argument(
+        "--gh-codeowners-wasm",
+        type=Path,
+        help="gh-codeowners' WebAssembly build (gh_codeowners_wasm.wasm), to time it too",
+    )
+    parser.add_argument(
         "--runs", type=int, default=11, help="runs for tools under 10 s"
     )
     parser.add_argument(
@@ -284,7 +302,7 @@ def main() -> None:
         for name, repo in repos.items():
             # Shows the rule and file counts, so a missing or empty
             # CODEOWNERS is obvious.
-            summary = sh([str(args.gh_codeowners.resolve()), "."], repo)
+            summary = sh([str(args.gh_codeowners.resolve()), "list"], repo)
             print(f"{name}: {summary.splitlines()[0]}\n")
         print(
             f"{os.cpu_count()} CPUs. Medians of up to {args.runs} runs; tools over 10 s ran once.\n"
@@ -300,7 +318,12 @@ def main() -> None:
         print(header)
         print("|---|---|" + "---|" * len(repos))
         per_repo = {
-            name: tools(bins, args.gh_codeowners.resolve(), work / f"{name}.paths")
+            name: tools(
+                bins,
+                args.gh_codeowners.resolve(),
+                args.gh_codeowners_wasm and args.gh_codeowners_wasm.resolve(),
+                work / f"{name}.paths",
+            )
             for name in repos
         }
         for i, tool in enumerate(per_repo["sentry"]):
