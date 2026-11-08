@@ -33,38 +33,33 @@ They were recorded from a private test repository, by reading which rule GitHub 
 
 Time to check a whole repository, with each tool doing its closest equivalent: counting the files each rule owns, listing each file's owner, or finding unowned files and rules that match nothing.
 
-- **Sentry:** [getsentry/sentry](https://github.com/getsentry/sentry) at `063a6cb`, with its own CODEOWNERS (773 rules) and 22,256 files.
-- **Linux:** [torvalds/linux](https://github.com/torvalds/linux) at `cbbddb6`, which has no CODEOWNERS. It uses one made from the `F:` lines in MAINTAINERS (10,127 rules), with 97,346 files.
+The repository is [getsentry/sentry](https://github.com/getsentry/sentry) at `063a6cb`, with its own CODEOWNERS (773 rules) and 22,256 files.
 
-Measured on 4 CPUs on 2026-11-01. Times are medians of 11 runs; tools taking over 10 s ran once. gh-codeowners is at `dab9bfc`.
+Measured on a 10-core Mac on 2026-11-07. Times are medians of 11 runs; tools taking over 10 s ran once. gh-codeowners is at `2342809`.
 
-| Tool | What it computes | Sentry | Linux |
-|---|---|---|---|
-| gh-codeowners | rule counts, unowned files, rules matching nothing | 34 ms | 206 ms |
-| gh-codeowners, 1 thread | same | 39 ms | 284 ms |
-| codeowners-rs, given the file list | owner of each file | 69 ms | 306 ms |
-| codeowners-rs, walking the tree | owner of each file | 127 ms | 475 ms |
-| codeowners-validator, `files` check | rules matching no files | 370 ms | 2.8 s |
-| hmarr/codeowners | owner of each file | 494 ms | rejects the file¹ |
-| codeowners-tool `audit` | 12 checks, including rules matching nothing and shadowed rules | 1.9 s | 25 s |
-| codeowners-audit | unowned files and other checks | 2.4 s | 281 s |
-| snyk fork `audit` | owner of each file | 56 s | out of memory after 147 s² |
-| beaugunderson/codeowners `audit` | owner of each file and directory | 38 s | out of memory after 153 s² |
-| jjmschofield/github-codeowners `audit` | owner of each file | 53 s | out of memory after 131 s² |
-| codeowners-deadzone `scan` | coverage, unused and shadowed rules | 179 s | stopped after 15 min |
+| Tool | What it computes | Time |
+|---|---|---|
+| gh-codeowners `list` | files each rule owns | 39 ms |
+| gh-codeowners `check --unused` | problems, including rules matching nothing | 40 ms |
+| codeowners-rs, given `git ls-files` | owner of each file | 59 ms |
+| codeowners-rs, walking the tree | owner of each file | 116 ms |
+| hmarr/codeowners | owner of each file | 495 ms |
+| codeowners-validator, `files` check | rules matching no files | 1.1 s |
+| codeowners-tool `audit` | 12 checks, including rules matching nothing and shadowed rules | 1.4 s |
+| codeowners-audit | unowned files and other checks | 2.6 s |
+| beaugunderson/codeowners `audit` | owner of each file and directory | 26 s |
+| jjmschofield/github-codeowners `audit` | owner of each file | 26 s |
+| snyk fork `audit` | owner of each file | 30 s |
+| codeowners-deadzone `scan` | coverage, unused and shadowed rules | 97 s |
 
-¹ It rejects the whole file at the first pattern with a comma, like `/Documentation/devicetree/bindings/iio/dac/adi,ad5446.yaml`. GitHub allows commas, and 1,300 of the rules have one.
-
-² Node's default heap limit.
-
-The repositories are fetched without file contents and checked out as empty files, which is all the tools read. To run it:
+The repository is fetched without file contents and checked out as empty files, which is all the tools read. To run it:
 
 ```bash
 (cd node && npm ci)
 uv run bench.py --gh-codeowners path/to/gh-codeowners
 ```
 
-It needs git, cargo, go and npm on `PATH`, and installs the other tools at pinned versions. `--work DIR` keeps the repositories between runs.
+It needs git, cargo, go and npm on `PATH`, and installs the other tools at pinned versions. `--work DIR` keeps the repository between runs.
 
 ## Running it
 

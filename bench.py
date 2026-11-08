@@ -8,12 +8,9 @@ repository: listing every file's owner, finding unowned files, or finding
 rules that match nothing. The repositories are:
 
 - getsentry/sentry, with its own .github/CODEOWNERS
-- torvalds/linux, with a CODEOWNERS made from the F: lines in MAINTAINERS,
-  without the catch-all rules at the end (Linux has no CODEOWNERS)
 
-Both are fetched without file contents, then checked out as empty files,
-which is all the tools read. The generated Linux CODEOWNERS is committed,
-since some tools only read committed files.
+It is fetched without file contents, then checked out as empty files,
+which is all the tools read.
 
     uv run bench.py --gh-codeowners PATH [--runs N] [--timeout SECONDS]
 
@@ -41,10 +38,6 @@ REPOS = {
     "sentry": (
         "https://github.com/getsentry/sentry",
         "063a6cb279fc42752e31ee200331f553f35ec26f",
-    ),
-    "linux": (
-        "https://github.com/torvalds/linux",
-        "cbbddb6b08cc9900a87cccaa9b22bbe06aa4f50a",
     ),
 }
 
@@ -99,20 +92,6 @@ def checkout(name: str, url: str, commit: str, repo: Path, work: Path) -> None:
             continue
         (repo / path).parent.mkdir(parents=True, exist_ok=True)
         (repo / path).touch()
-    if name == "linux":
-        maintainers = sh(["git", "show", f"{commit}:MAINTAINERS"], repo)
-        rules = []
-        for lineno, line in enumerate(maintainers.splitlines(), 1):
-            if line.startswith("F:\t"):
-                pattern = line[3:].strip()
-                pattern = pattern if pattern.startswith("/") else "/" + pattern
-                if pattern not in ("/*", "/*/"):
-                    rules.append(f"{pattern} @team{lineno}")
-        (repo / ".github").mkdir(exist_ok=True)
-        (repo / ".github" / "CODEOWNERS").write_text("\n".join(rules) + "\n")
-        git = ["git", "-c", "user.name=bench", "-c", "user.email=bench@example.com"]
-        sh(git + ["add", ".github/CODEOWNERS"], repo)
-        sh(git + ["commit", "-qm", "Add CODEOWNERS from MAINTAINERS"], repo)
     (work / f"{name}.paths").write_text(sh(["git", "ls-files"], repo))
 
 
@@ -142,19 +121,24 @@ def install(bin_dir: Path) -> dict[str, Path]:
     }
 
 
-def tools(bins: dict[str, Path], gh_codeowners: Path, paths: Path) -> list[Tool]:
+def tools(bins: dict[str, Path], gh_codeowners: Path) -> list[Tool]:
     node = shutil.which("node") or "node"
     return [
         Tool(
-            "gh-codeowners",
-            "rule counts, unowned files, unused rules",
-            [str(gh_codeowners), "."],
+            "gh-codeowners `list`",
+            "files each rule owns",
+            [str(gh_codeowners), "list"],
         ),
-        Tool("gh-codeowners, 1 thread", "same", [str(gh_codeowners), "-j", "1", "."]),
         Tool(
-            "codeowners-rs, file list",
+            "gh-codeowners `check --unused`",
+            "problems, including rules matching nothing",
+            [str(gh_codeowners), "check", "--unused"],
+            ok={0, 1},
+        ),
+        Tool(
+            "codeowners-rs, file list from git ls-files",
             "owner of each file",
-            [str(bins["codeowners-rs"]), "-p", str(paths)],
+            ["sh", "-c", f"git ls-files | {bins['codeowners-rs']} -p /dev/stdin"],
         ),
         Tool(
             "codeowners-rs, walking", "owner of each file", [str(bins["codeowners-rs"])]
@@ -284,7 +268,7 @@ def main() -> None:
         for name, repo in repos.items():
             # Shows the rule and file counts, so a missing or empty
             # CODEOWNERS is obvious.
-            summary = sh([str(args.gh_codeowners.resolve()), "."], repo)
+            summary = sh([str(args.gh_codeowners.resolve()), "list"], repo)
             print(f"{name}: {summary.splitlines()[0]}\n")
         print(
             f"{os.cpu_count()} CPUs. Medians of up to {args.runs} runs; tools over 10 s ran once.\n"
@@ -299,10 +283,7 @@ def main() -> None:
         )
         print(header)
         print("|---|---|" + "---|" * len(repos))
-        per_repo = {
-            name: tools(bins, args.gh_codeowners.resolve(), work / f"{name}.paths")
-            for name in repos
-        }
+        per_repo = {name: tools(bins, args.gh_codeowners.resolve()) for name in repos}
         for i, tool in enumerate(per_repo["sentry"]):
             cells = []
             for name, repo in repos.items():

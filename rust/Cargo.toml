@@ -7,4 +7,4 @@ publish = false
 [dependencies]
 codeowners = "=0.1.3"
 codeowners-rs = "=0.1.1"
-gh-codeowners = { git = "https://github.com/chdsbd/gh-codeowners", rev = "d7382c9d3d166fee697a4228c7c6d81debe1a526" }
+gh-codeowners = { git = "https://github.com/chdsbd/gh-codeowners", rev = "23428096c4b8ac32a5a8c4d0fe32c2b07ef5c4fc" }

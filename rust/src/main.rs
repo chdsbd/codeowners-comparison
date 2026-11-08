@@ -20,7 +20,7 @@ fn gh_codeowners(line: &str, path: &str) -> &'static str {
     if !can_match(&rule.pattern) {
         return "E";
     }
-    if count(&Rules::new(&rules), &[path], 1).rules[0].owned == 1 {
+    if count(&Rules::new(&rules), &[path]).rules[0].owned == 1 {
         "1"
     } else {
         "0"
